@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#21402C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plantmetingen">
+<title>Plantmetingen</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #EEF2EA;
+    --panel: #FFFFFF;
+    --forest: #21402C;
+    --leaf: #5B7F52;
+    --leaf-soft: #DCE6D6;
+    --soil: #C97F2C;
+    --amber: #D4A03C;
+    --danger: #A83232;
+    --ok: #4C7A44;
+    --text: #1C241D;
+    --text-soft: #5B655B;
+    --border: #D7DECF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3{font-family:'Zilla Slab', serif; margin:0;}
+  #app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--bg);
+    padding-bottom:76px;
+  }
+  header{
+    padding:18px 20px 14px;
+    padding-top:calc(18px + env(safe-area-inset-top));
+    border-bottom:1px solid var(--border);
+    background:var(--forest);
+    color:#F2F6EE;
+  }
+  header h1{font-size:22px; font-weight:600; letter-spacing:0.2px;}
+  header .sub{font-size:13px; color:#B9CBAE; margin-top:3px;}
+  main{flex:1; padding:16px;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .panel h3{font-size:15px; margin-bottom:10px;}
+  .field{margin-bottom:16px;}
+  .field label, .lbl{
+    display:block;
+    font-size:13px;
+    color:var(--text-soft);
+    margin-bottom:6px;
+    font-weight:500;
+  }
+  select, textarea, input[type=text], input[type=number], input[type=date]{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:15px;
+    font-family:inherit;
+    background:#FBFCF9;
+    color:var(--text);
+  }
+  textarea{resize:vertical; min-height:60px;}
+  select.big{font-weight:600;}
+  .stepper{display:flex; align-items:center; gap:8px;}
+  .stepper button{
+    width:42px; height:42px;
+    flex:none;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#FBFCF9;
+    font-size:16px;
+    color:var(--forest);
+    font-weight:600;
+    cursor:pointer;
+  }
+  .stepper button:active{background:var(--leaf-soft);}
+  .stepper input{
+    flex:1; min-width:0;
+    text-align:center;
+    font-size:24px;
+    font-weight:600;
+    font-family:'Zilla Slab', serif;
+    color:var(--forest);
+    padding:6px;
+  }
+  .unit{font-size:13px; color:var(--text-soft); flex:none;}
+  .delta{font-size:12px; color:var(--text-soft); margin-top:5px; min-height:16px;}
+  .delta .pos{color:var(--ok); font-weight:600;}
+  .delta .zero{color:var(--soil); font-weight:600;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chips button{
+    padding:9px 12px;
+    border-radius:18px;
+    border:1px solid var(--border);
+    background:#FBFCF9;
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-soft);
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .chips button.active{background:var(--leaf); border-color:var(--leaf); color:#fff;}
+  .chips button.active[data-k="remmen"]{background:var(--soil); border-color:var(--soil);}
+  .chips button.active[data-k="belichting"]{background:var(--amber); border-color:var(--amber);}
+  .chips button.active[data-k="klimaat"]{background:#3F6F8A; border-color:#3F6F8A;}
+  .toggle{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px; border:1px solid var(--border); border-radius:8px; background:#FBFCF9; cursor:pointer;
+  }
+  .toggle.on{background:var(--leaf-soft); border-color:var(--leaf);}
+  .toggle .t1{font-weight:600; font-size:14px; color:var(--forest);}
+  .toggle .t2{font-size:12px; color:var(--text-soft); margin-top:2px;}
+  .switch{width:44px; height:26px; border-radius:13px; background:var(--border); position:relative; flex:none; transition:background .2s;}
+  .switch::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .2s;}
+  .toggle.on .switch{background:var(--leaf);}
+  .toggle.on .switch::after{left:21px;}
+  .row{display:flex; gap:10px;}
+  .row .field{flex:1; min-width:0;}
+  .btn-primary{
+    width:100%;
+    padding:15px;
+    background:var(--forest);
+    color:#F2F6EE;
+    border:none;
+    border-radius:9px;
+    font-size:16px;
+    font-weight:600;
+    font-family:'Zilla Slab', serif;
+    letter-spacing:0.2px;
+    cursor:pointer;
+  }
+  .btn-primary:active{background:#152A1D;}
+  .btn-primary:disabled{opacity:.6;}
+  .btn-secondary{
+    width:100%;
+    padding:12px;
+    background:#FBFCF9;
+    color:var(--forest);
+    border:1px solid var(--border);
+    border-radius:9px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    margin-top:8px;
+    font-family:inherit;
+  }
+  .btn-danger{color:var(--danger); border-color:#E5C9C9;}
+  .btn-link{background:none; border:none; color:var(--leaf); font-weight:600; font-size:13px; cursor:pointer; padding:4px 0; font-family:inherit;}
+  .toast{
+    position:fixed;
+    bottom:88px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--forest);
+    color:#fff;
+    padding:11px 18px;
+    border-radius:20px;
+    font-size:14px;
+    opacity:0;
+    transition:opacity 0.25s;
+    pointer-events:none;
+    max-width:90%;
+    text-align:center;
+    z-index:50;
+  }
+  .toast.show{opacity:1;}
+  .plantcard{
+    background:#FBFCF9;
+    border:1px solid var(--border);
+    border-left:3px solid var(--forest);
+    border-radius:6px;
+    padding:12px;
+    margin-top:10px;
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .plantcard .nm{font-weight:600; color:var(--forest); font-size:15px;}
+  .plantcard .meta{color:var(--text-soft);}
+  .hint{
+    margin-top:10px; padding:10px 12px; border-radius:6px;
+    background:#FBF3E4; border:1px solid #EBD3A8; color:#7A4E14; font-size:13px; line-height:1.4;
+  }
+  .log-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .log-item:last-child{border-bottom:none;}
+  .log-item .nm{font-weight:600; color:var(--forest);}
+  .log-item .meta{color:var(--text-soft); font-size:12.5px;}
+  .log-item .right{text-align:right; flex:none;}
+  .dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--border); margin-right:6px; vertical-align:middle;}
+  .dot.done{background:var(--ok);}
+  .group-h{font-size:12px; font-weight:600; color:var(--text-soft); text-transform:uppercase; letter-spacing:.5px; margin:14px 0 2px;}
+  .group-h:first-child{margin-top:0;}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{
+    text-align:left;
+    font-size:11.5px;
+    color:var(--text-soft);
+    font-weight:500;
+    padding:6px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  td{padding:8px 4px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  td.num, th.num{text-align:right;}
+  .tag{display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:8px; color:#fff; margin-left:2px;}
+  .tag.remmen{background:var(--soil);}
+  .tag.belichting{background:var(--amber);}
+  .tag.klimaat{background:#3F6F8A;}
+  .tag.blad{background:var(--leaf);}
+  .del{background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer; padding:0 4px;}
+  nav{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:520px;
+    margin:0 auto;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    display:flex;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1;
+    padding:13px 0 11px;
+    background:none;
+    border:none;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--text-soft);
+    cursor:pointer;
+  }
+  nav button.active{color:var(--forest); font-weight:600;}
+  .tab{display:none;}
+  .tab.active{display:block;}
+  .empty{
+    text-align:center;
+    padding:30px 10px;
+    color:var(--text-soft);
+    font-size:14px;
+  }
+  .note{font-size:11.5px; color:var(--text-soft); margin-top:6px; line-height:1.4;}
+  .progress{height:6px; background:var(--leaf-soft); border-radius:3px; overflow:hidden; margin-top:8px;}
+  .progress div{height:100%; background:var(--leaf); width:0; transition:width .3s;}
+  .chartwrap{position:relative; height:230px;}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;}
+  .stat{background:#FBFCF9; border:1px solid var(--border); border-radius:8px; padding:9px; text-align:center;}
+  .stat .v{font-family:'Zilla Slab', serif; font-size:20px; font-weight:600; color:var(--forest);}
+  .stat .l{font-size:11px; color:var(--text-soft); margin-top:2px;}
+  .seg{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;}
+  .seg button{padding:10px 4px; border-radius:8px; border:1px solid var(--border); background:#FBFCF9; font-size:13px; font-weight:500; color:var(--text-soft); cursor:pointer; font-family:inherit;}
+  .seg button.active{background:var(--forest); border-color:var(--forest); color:#fff;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Plantmetingen</h1>
+    <div class="sub" id="todayLabel"></div>
+  </header>
+
+  <main>
+    <!-- METEN -->
+    <div class="tab active" id="tab-meten">
+      <div class="panel" id="noPlantsPanel">
+        <div class="empty">Nog geen planten. Voeg eerst je meetplanten toe onder <strong>Planten</strong>.</div>
+        <button class="btn-primary" onclick="goTab('planten')">Plant toevoegen</button>
+      </div>
+
+      <div class="panel hidden" id="measurePanel">
+        <div class="field" style="margin-bottom:0">
+          <label>Plant</label>
+          <select id="plantSelect" class="big"></select>
+          <div id="plantCard"></div>
+        </div>
+      </div>
+
+      <div class="panel hidden" id="measureForm">
+        <div class="row">
+          <div class="field">
+            <label>Datum</label>
+            <input type="date" id="mDatum">
+          </div>
+          <div class="field" style="flex:0 0 90px">
+            <label>Week</label>
+            <input type="text" id="mWeek" readonly style="text-align:center; font-weight:600;">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="toggle" id="newLeafToggle">
+            <div>
+              <div class="t1">Wissel naar nieuw blad</div>
+              <div class="t2" id="newLeafSub">Vorig blad is uitgegroeid</div>
+            </div>
+            <div class="switch"></div>
+          </div>
+          <div id="leafHint"></div>
+        </div>
+
+        <div class="field">
+          <label>Lengte jongste blad</label>
+          <div class="stepper">
+            <button data-t="mLengte" data-d="-0.5">−½</button>
+            <input type="number" id="mLengte" inputmode="decimal" step="0.1" min="0" placeholder="0,0">
+            <button data-t="mLengte" data-d="0.5">+½</button>
+            <span class="unit">cm</span>
+          </div>
+          <div class="delta" id="dLengte"></div>
+        </div>
+
+        <div class="field">
+          <label>Breedte jongste blad</label>
+          <div class="stepper">
+            <button data-t="mBreedte" data-d="-0.5">−½</button>
+            <input type="number" id="mBreedte" inputmode="decimal" step="0.1" min="0" placeholder="0,0">
+            <button data-t="mBreedte" data-d="0.5">+½</button>
+            <span class="unit">cm</span>
+          </div>
+          <div class="delta" id="dBreedte"></div>
+        </div>
+
+        <div class="field">
+          <label>Omstandigheden deze week</label>
+          <div class="chips" id="condChips">
+            <button data-k="remmen">Geremd</button>
+            <button data-k="belichting">Belichting aan</button>
+            <button data-k="klimaat">Klimaatwijziging</button>
+          </div>
+          <div class="note">Wordt onthouden per afdeling, zodat je het maar één keer hoeft aan te zetten.</div>
+        </div>
+
+        <div class="field">
+          <label>Notitie (optioneel)</label>
+          <textarea id="mNotitie" placeholder="bijv. geremd met ... 0,5 ml/l, dag/nacht temp 22/19, blad licht gekruld"></textarea>
+        </div>
+
+        <button class="btn-primary" id="saveBtn">Opslaan &amp; volgende</button>
+      </div>
+
+      <div class="panel hidden" id="roundPanel">
+        <h3 id="roundTitle">Ronde deze week</h3>
+        <div class="progress"><div id="roundBar"></div></div>
+        <div id="roundList" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- PLANTEN -->
+    <div class="tab" id="tab-planten">
+      <div class="panel">
+        <h3 id="plantFormTitle">Nieuwe meetplant</h3>
+        <div class="row">
+          <div class="field">
+            <label>Plantnaam / code</label>
+            <input type="text" id="pNaam" placeholder="bijv. P1">
+          </div>
+          <div class="field">
+            <label>Soort / cultivar</label>
+            <input type="text" id="pSoort" list="soortList" placeholder="bijv. Monstera deliciosa">
+            <datalist id="soortList"></datalist>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Oppotweek</label>
+            <input type="number" id="pOppotWeek" inputmode="numeric" min="1" max="53" placeholder="1–53">
+          </div>
+          <div class="field">
+            <label>Oppotjaar</label>
+            <input type="number" id="pOppotJaar" inputmode="numeric" min="2000" max="2100">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Afdeling</label>
+            <input type="text" id="pAfdeling" list="afdList" placeholder="bijv. 3">
+            <datalist id="afdList"></datalist>
+          </div>
+          <div class="field">
+            <label>Baan</label>
+            <input type="text" id="pBaan" placeholder="bijv. 12">
+          </div>
+        </div>
+        <div class="field">
+          <label>Startblad nummer</label>
+          <input type="number" id="pBlad" inputmode="numeric" min="1" value="1">
+          <div class="note">Handig als je halverwege de teelt begint (bijv. blad 6).</div>
+        </div>
+        <div class="field">
+          <label>Notitie (optioneel)</label>
+          <textarea id="pNotitie" placeholder="bijv. potmaat 17, referentieplant zonder remmen"></textarea>
+        </div>
+        <button class="btn-primary" id="savePlantBtn">Plant opslaan</button>
+        <button class="btn-secondary hidden" id="cancelEditBtn">Annuleren</button>
+        <button class="btn-secondary btn-danger hidden" id="archiveBtn">Plant archiveren</button>
+      </div>
+
+      <div class="panel">
+        <h3>Meetplanten</h3>
+        <div id="plantList"><div class="empty">Nog geen planten</div></div>
+      </div>
+    </div>
+
+    <!-- GRAFIEKEN -->
+    <div class="tab" id="tab-grafieken">
+      <div class="seg" id="chartMode">
+        <button class="active" data-m="plant">Per plant</button>
+        <button data-m="afdeling">Vergelijken</button>
+      </div>
+
+      <div id="modePlant">
+        <div class="panel">
+          <div class="field" style="margin-bottom:0">
+            <label>Plant</label>
+            <select id="chartPlant" class="big"></select>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="stats" id="plantStats"></div>
+          <h3>Bladmaat per week</h3>
+          <div class="chartwrap"><canvas id="sizeChart"></canvas></div>
+          <div class="note">Doorgetrokken = lengte, gestippeld = breedte. Elke kleur is een blad.</div>
+        </div>
+        <div class="panel">
+          <h3>Groei per week</h3>
+          <div class="chartwrap"><canvas id="growthChart"></canvas></div>
+          <div class="note">Groei van het gemeten blad t.o.v. de vorige meting, omgerekend naar cm per 7 dagen. Gekleurde balken onderaan: <span class="tag remmen">geremd</span> <span class="tag belichting">belichting</span> <span class="tag klimaat">klimaat</span></div>
+        </div>
+        <div class="panel">
+          <h3>Metingen</h3>
+          <div id="measTable"></div>
+        </div>
+      </div>
+
+      <div id="modeAfd" class="hidden">
+        <div class="panel">
+          <div class="row">
+            <div class="field">
+              <label>Groeperen op</label>
+              <select id="cmpGroup">
+                <option value="afdeling">Afdeling</option>
+                <option value="soort">Soort</option>
+                <option value="plant">Plant</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Maat</label>
+              <select id="cmpMetric">
+                <option value="gL">Lengtegroei</option>
+                <option value="gB">Breedtegroei</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Filter soort</label>
+            <select id="cmpSoort"></select>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 id="cmpTitle">Gem. groei per week</h3>
+          <div class="chartwrap"><canvas id="cmpChart"></canvas></div>
+          <div class="note">Gemiddelde groei (cm/week) per groep. Vergelijk bijv. een geremde afdeling met een onbehandelde.</div>
+        </div>
+        <div class="panel">
+          <h3>Samenvatting per groep</h3>
+          <div id="cmpTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="tab" id="tab-export">
+      <div class="panel">
+        <h3>Exporteren</h3>
+        <button class="btn-secondary" id="exportMeasBtn">Metingen exporteren (CSV)</button>
+        <button class="btn-secondary" id="exportPlantBtn">Plantenlijst exporteren (CSV)</button>
+        <div class="note">CSV met puntkomma's en komma als decimaalteken — opent direct goed in Nederlandse Excel. Inclusief berekende groei per week.</div>
+      </div>
+      <div class="panel">
+        <h3>Back-up</h3>
+        <button class="btn-secondary" id="backupBtn">Back-up maken (JSON)</button>
+        <button class="btn-secondary" id="restoreBtn">Back-up terugzetten</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" class="hidden">
+        <div class="note">Alle gegevens staan alleen op dít toestel (in de browser). Maak regelmatig een back-up, bijv. na elke ronde, en bewaar die op OneDrive/Drive. Met terugzetten kun je ook data van een ander toestel inladen.</div>
+      </div>
+      <div class="panel">
+        <h3>Gegevens</h3>
+        <div id="dataInfo" class="note" style="font-size:13px"></div>
+        <button class="btn-secondary btn-danger" id="wipeBtn">Alle gegevens wissen</button>
+      </div>
+    </div>
+  </main>
+
+  <nav>
+    <button class="active" data-tab="meten">Meten</button>
+    <button data-tab="planten">Planten</button>
+    <button data-tab="grafieken">Grafieken</button>
+    <button data-tab="export">Export</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ---------- Storage (lokaal op het toestel) ----------
+const STORE_KEY = 'plantmetingen:v1';
+const COND_KEYS = ['remmen','belichting','klimaat'];
+const COND_LABEL = { remmen:'Geremd', belichting:'Belichting', klimaat:'Klimaat' };
+const LEAF_COLORS = ['#21402C','#C97F2C','#3F6F8A','#A83232','#5B7F52','#D4A03C','#7A5C99','#2E8B84'];
+
+let db = { plants:[], metingen:[], cond:{} };
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      db = { plants: d.plants || [], metingen: d.metingen || [], cond: d.cond || {} };
+    }
+  }catch(e){ showToast('Kon opgeslagen gegevens niet lezen'); }
+}
+function persist(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    return true;
+  }catch(e){
+    showToast('Opslaan mislukt — opslag vol of geblokkeerd');
+    return false;
+  }
+}
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+
+// ---------- Helpers ----------
+const $ = id => document.getElementById(id);
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function isoWeek(date){
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return { year: d.getUTCFullYear(), week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7) };
+}
+function weekKey(dateStr){
+  const w = isoWeek(parseDate(dateStr));
+  return w.year + '-' + String(w.week).padStart(2,'0');
+}
+function weekLabel(key){ const [y,w] = key.split('-'); return 'wk ' + parseInt(w) + (y != isoWeek(new Date()).year ? " '" + y.slice(2) : ''); }
+function parseDate(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function dateStr(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function fmt(n, dec=1){ return (n == null || isNaN(n)) ? '–' : Number(n).toFixed(dec).replace('.', ','); }
+function fmtSigned(n){ return (n == null || isNaN(n)) ? '–' : (n > 0 ? '+' : '') + fmt(n); }
+function num(v){ if(v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; }
+function plantLabel(p){ return p.naam + (p.soort ? ' — ' + p.soort : ''); }
+function locLabel(p){ return 'Afd. ' + (p.afdeling || '?') + ' · baan ' + (p.baan || '?'); }
+function activePlants(){
+  return db.plants.filter(p => !p.archief).sort((a,b) =>
+    String(a.afdeling).localeCompare(String(b.afdeling), 'nl', {numeric:true}) ||
+    String(a.baan).localeCompare(String(b.baan), 'nl', {numeric:true}) ||
+    String(a.naam).localeCompare(String(b.naam), 'nl', {numeric:true}));
+}
+function plantById(id){ return db.plants.find(p => p.id === id); }
+function metingenVan(id){ return db.metingen.filter(m => m.plantId === id).sort((a,b) => a.datum.localeCompare(b.datum) || a.ts.localeCompare(b.ts)); }
+function currentLeaf(p){
+  const ms = metingenVan(p.id);
+  return ms.length ? ms[ms.length-1].blad : (p.startBlad || 1);
+}
+function pottedWeeks(p, onDate){
+  if(!p.oppotWeek || !p.oppotJaar) return null;
+  // maandag van ISO-week
+  const jan4 = new Date(p.oppotJaar, 0, 4);
+  const mon = new Date(jan4); mon.setDate(jan4.getDate() - ((jan4.getDay()+6)%7) + (p.oppotWeek-1)*7);
+  return Math.floor((onDate - mon) / (7*86400000));
+}
+
+// Groei per meting: t.o.v. vorige meting van hetzelfde blad, genormaliseerd naar 7 dagen
+function withGrowth(ms){
+  const out = [];
+  ms.forEach((m, i) => {
+    let prev = null;
+    for(let j = i-1; j >= 0; j--){ if(ms[j].blad === m.blad){ prev = ms[j]; break; } }
+    const r = Object.assign({}, m, { dL:null, dB:null, gL:null, gB:null, dagen:null });
+    if(prev){
+      const dagen = Math.round((parseDate(m.datum) - parseDate(prev.datum)) / 86400000);
+      r.dagen = dagen;
+      if(m.lengte != null && prev.lengte != null) r.dL = m.lengte - prev.lengte;
+      if(m.breedte != null && prev.breedte != null) r.dB = m.breedte - prev.breedte;
+      if(dagen > 0){
+        if(r.dL != null) r.gL = r.dL * 7 / dagen;
+        if(r.dB != null) r.gB = r.dB * 7 / dagen;
+      }
+    }
+    out.push(r);
+  });
+  return out;
+}
+
+$('todayLabel').textContent = (() => {
+  const d = new Date();
+  return d.toLocaleDateString('nl-NL', { weekday:'long', day:'numeric', month:'long' }) + ' · week ' + isoWeek(d).week;
+})();
+
+// ---------- Nav ----------
+function goTab(name){
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+  window.scrollTo(0,0);
+  if(name === 'meten') renderMeten();
+  if(name === 'planten') renderPlanten();
+  if(name === 'grafieken') renderGrafieken();
+  if(name === 'export') renderExport();
+}
+document.querySelectorAll('nav button').forEach(btn => btn.addEventListener('click', () => goTab(btn.dataset.tab)));
+
+// ================= METEN =================
+const cur = { plantId:null, newLeaf:false, cond:{} };
+
+function renderMeten(keepSelection){
+  const plants = activePlants();
+  const has = plants.length > 0;
+  $('noPlantsPanel').classList.toggle('hidden', has);
+  ['measurePanel','measureForm','roundPanel'].forEach(id => $(id).classList.toggle('hidden', !has));
+  if(!has) return;
+
+  if(!$('mDatum').value) $('mDatum').value = dateStr(new Date());
+  $('mWeek').value = isoWeek(parseDate($('mDatum').value)).week;
+
+  const sel = $('plantSelect');
+  const wk = weekKey($('mDatum').value);
+  sel.innerHTML = plants.map(p => {
+    const done = db.metingen.some(m => m.plantId === p.id && weekKey(m.datum) === wk);
+    return `<option value="${p.id}">${done ? '✓ ' : ''}${escapeHtml(p.naam)} · afd ${escapeHtml(p.afdeling)} / ${escapeHtml(p.baan)}${p.soort ? ' · ' + escapeHtml(p.soort) : ''}</option>`;
+  }).join('');
+  if(!keepSelection || !plants.some(p => p.id === cur.plantId)){
+    const next = plants.find(p => !db.metingen.some(m => m.plantId === p.id && weekKey(m.datum) === wk));
+    cur.plantId = (next || plants[0]).id;
+  }
+  sel.value = cur.plantId;
+  selectPlant(cur.plantId);
+  renderRound();
+}
+
+function selectPlant(id){
+  cur.plantId = id;
+  cur.newLeaf = false;
+  const p = plantById(id);
+  const ms = withGrowth(metingenVan(id));
+  const last = ms[ms.length-1];
+  const leaf = currentLeaf(p);
+  const wks = pottedWeeks(p, parseDate($('mDatum').value));
+
+  let html = `<div class="plantcard">
+    <div class="nm">${escapeHtml(p.naam)}${p.soort ? ' <span class="meta" style="font-weight:400">· ' + escapeHtml(p.soort) + '</span>' : ''}</div>
+    <div class="meta">${escapeHtml(locLabel(p))}${p.oppotWeek ? ' · opgepot wk ' + p.oppotWeek + (wks != null && wks >= 0 ? ' (' + wks + ' wkn)' : '') : ''}</div>`;
+  if(last){
+    html += `<div style="margin-top:6px">Blad <strong>${last.blad}</strong> · vorige meting ${fmtDate(last.datum)}: <strong>${fmt(last.lengte)} × ${fmt(last.breedte)} cm</strong>`;
+    if(last.gL != null) html += ` <span class="meta">(${fmtSigned(last.gL)} / ${fmtSigned(last.gB)} cm/wk)</span>`;
+    html += `</div>`;
+  } else {
+    html += `<div style="margin-top:6px" class="meta">Nog geen metingen — start met blad ${leaf}</div>`;
+  }
+  if(p.notitie) html += `<div class="meta" style="margin-top:4px; font-style:italic">${escapeHtml(p.notitie)}</div>`;
+  html += `</div>`;
+  $('plantCard').innerHTML = html;
+
+  // Hint: groei gestopt?
+  let hint = '';
+  if(last && last.gL != null && Math.abs(last.gL) < 0.3 && (last.gB == null || Math.abs(last.gB) < 0.3)){
+    hint = `<div class="hint">Blad ${last.blad} groeide vorige keer nauwelijks meer (${fmtSigned(last.gL)} cm/wk). Is het uitgegroeid? Zet dan <strong>Wissel naar nieuw blad</strong> aan.</div>`;
+  }
+  $('leafHint').innerHTML = hint;
+  $('newLeafToggle').classList.remove('on');
+  updateLeafSub();
+
+  // Omstandigheden: onthouden per afdeling
+  cur.cond = Object.assign({}, db.cond[p.afdeling] || {});
+  document.querySelectorAll('#condChips button').forEach(b => b.classList.toggle('active', !!cur.cond[b.dataset.k]));
+
+  $('mLengte').value = '';
+  $('mBreedte').value = '';
+  $('mNotitie').value = '';
+  updateDeltas();
+}
+
+function fmtDate(s){ return parseDate(s).toLocaleDateString('nl-NL', {day:'numeric', month:'short'}); }
+
+function updateLeafSub(){
+  const p = plantById(cur.plantId);
+  const leaf = currentLeaf(p);
+  const hasMeas = metingenVan(p.id).length > 0;
+  $('newLeafSub').textContent = cur.newLeaf
+    ? `Je meet nu blad ${leaf + 1} (blad ${leaf} is uitgegroeid)`
+    : (hasMeas ? `Nu: blad ${leaf} — aanzetten als dit blad uitgegroeid is` : `Eerste meting: blad ${leaf}`);
+}
+
+$('newLeafToggle').addEventListener('click', () => {
+  const p = plantById(cur.plantId);
+  if(!metingenVan(p.id).length){ showToast('Eerste meting — nog geen blad om te wisselen'); return; }
+  cur.newLeaf = !cur.newLeaf;
+  $('newLeafToggle').classList.toggle('on', cur.newLeaf);
+  updateLeafSub();
+  updateDeltas();
+});
+
+function updateDeltas(){
+  const p = plantById(cur.plantId);
+  if(!p) return;
+  const ms = metingenVan(p.id);
+  const last = ms[ms.length-1];
+  const leaf = cur.newLeaf ? currentLeaf(p) + 1 : currentLeaf(p);
+  const prev = !cur.newLeaf && last && last.blad === leaf ? last : null;
+  [['mLengte','dLengte','lengte'],['mBreedte','dBreedte','breedte']].forEach(([inp, out, key]) => {
+    const v = num($(inp).value);
+    if(!prev || prev[key] == null){ $(out).innerHTML = cur.newLeaf ? 'Nieuw blad — eerste meting' : ''; return; }
+    if(v == null){ $(out).innerHTML = `Vorige: ${fmt(prev[key])} cm`; return; }
+    const d = v - prev[key];
+    const cls = Math.abs(d) < 0.3 ? 'zero' : 'pos';
+    $(out).innerHTML = `Vorige: ${fmt(prev[key])} cm · groei <span class="${cls}">${fmtSigned(d)} cm</span>`;
+  });
+}
+['mLengte','mBreedte'].forEach(id => $(id).addEventListener('input', updateDeltas));
+
+document.querySelectorAll('.stepper button').forEach(btn => btn.addEventListener('click', () => {
+  const inp = $(btn.dataset.t);
+  let v = num(inp.value);
+  if(v == null){
+    // start vanaf vorige meting als die er is
+    const p = plantById(cur.plantId);
+    const ms = metingenVan(p.id), last = ms[ms.length-1];
+    const key = btn.dataset.t === 'mLengte' ? 'lengte' : 'breedte';
+    v = (!cur.newLeaf && last && last[key] != null) ? last[key] : 0;
+  }
+  v = Math.max(0, Math.round((v + parseFloat(btn.dataset.d)) * 10) / 10);
+  inp.value = v;
+  updateDeltas();
+}));
+
+document.querySelectorAll('#condChips button').forEach(btn => btn.addEventListener('click', () => {
+  const k = btn.dataset.k;
+  cur.cond[k] = !cur.cond[k];
+  btn.classList.toggle('active', cur.cond[k]);
+}));
+
+$('plantSelect').addEventListener('change', e => selectPlant(e.target.value));
+$('mDatum').addEventListener('change', () => {
+  if(!$('mDatum').value) $('mDatum').value = dateStr(new Date());
+  renderMeten(true);
+});
+
+$('saveBtn').addEventListener('click', () => {
+  const p = plantById(cur.plantId);
+  if(!p){ showToast('Kies eerst een plant'); return; }
+  const lengte = num($('mLengte').value), breedte = num($('mBreedte').value);
+  if(lengte == null && breedte == null){ showToast('Vul lengte en/of breedte in'); return; }
+  const datum = $('mDatum').value;
+  const leaf = cur.newLeaf ? currentLeaf(p) + 1 : currentLeaf(p);
+
+  const dup = db.metingen.find(m => m.plantId === p.id && m.datum === datum && m.blad === leaf);
+  if(dup && !confirm(`${p.naam} blad ${leaf} is op deze datum al gemeten. Vorige meting vervangen?`)) return;
+  if(dup) db.metingen = db.metingen.filter(m => m !== dup);
+
+  const cond = {};
+  COND_KEYS.forEach(k => { if(cur.cond[k]) cond[k] = true; });
+  db.metingen.push({
+    id: uid(), ts: new Date().toISOString(), plantId: p.id, datum,
+    blad: leaf, nieuwBlad: cur.newLeaf, lengte, breedte, cond,
+    notitie: $('mNotitie').value.trim()
+  });
+  db.cond[p.afdeling] = cond;
+  if(!persist()) return;
+
+  showToast(`Opgeslagen — ${p.naam} blad ${leaf}: ${fmt(lengte)} × ${fmt(breedte)} cm`);
+  renderMeten(false);
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+function renderRound(){
+  const plants = activePlants();
+  const wk = weekKey($('mDatum').value);
+  const doneIds = new Set(db.metingen.filter(m => weekKey(m.datum) === wk).map(m => m.plantId));
+  const n = plants.filter(p => doneIds.has(p.id)).length;
+  $('roundTitle').textContent = `Ronde week ${parseInt(wk.split('-')[1])} — ${n} van ${plants.length} gemeten`;
+  $('roundBar').style.width = (plants.length ? n / plants.length * 100 : 0) + '%';
+
+  let html = '', lastAfd = null;
+  plants.forEach(p => {
+    if(p.afdeling !== lastAfd){ html += `<div class="group-h">Afdeling ${escapeHtml(p.afdeling || '?')}</div>`; lastAfd = p.afdeling; }
+    const m = db.metingen.filter(x => x.plantId === p.id && weekKey(x.datum) === wk).sort((a,b)=>a.ts.localeCompare(b.ts)).pop();
+    html += `<div class="log-item" data-id="${p.id}">
+      <span><span class="dot ${m ? 'done' : ''}"></span><span class="nm">${escapeHtml(p.naam)}</span> <span class="meta">baan ${escapeHtml(p.baan)}</span></span>
+      <span class="right meta">${m ? `blad ${m.blad}: ${fmt(m.lengte)} × ${fmt(m.breedte)}` : 'nog meten'}</span>
+    </div>`;
+  });
+  $('roundList').innerHTML = html;
+  $('roundList').querySelectorAll('.log-item').forEach(el => el.addEventListener('click', () => {
+    $('plantSelect').value = el.dataset.id;
+    selectPlant(el.dataset.id);
+    window.scrollTo({top:0, behavior:'smooth'});
+  }));
+}
+
+// ================= PLANTEN =================
+let editingId = null;
+
+function renderPlanten(){
+  const afds = [...new Set(db.plants.map(p => p.afdeling).filter(Boolean))];
+  $('afdList').innerHTML = afds.map(a => `<option value="${escapeHtml(a)}">`).join('');
+  const soorten = [...new Set(db.plants.map(p => p.soort).filter(Boolean))];
+  $('soortList').innerHTML = soorten.map(a => `<option value="${escapeHtml(a)}">`).join('');
+  if(!editingId && !$('pOppotJaar').value) $('pOppotJaar').value = isoWeek(new Date()).year;
+
+  const plants = activePlants();
+  const archived = db.plants.filter(p => p.archief);
+  if(!plants.length && !archived.length){ $('plantList').innerHTML = '<div class="empty">Nog geen planten</div>'; return; }
+  let html = '', lastAfd = null;
+  plants.forEach(p => {
+    if(p.afdeling !== lastAfd){ html += `<div class="group-h">Afdeling ${escapeHtml(p.afdeling || '?')}</div>`; lastAfd = p.afdeling; }
+    const n = db.metingen.filter(m => m.plantId === p.id).length;
+    html += `<div class="log-item" data-id="${p.id}">
+      <span><span class="nm">${escapeHtml(p.naam)}</span> <span class="meta">${escapeHtml(p.soort || '')}</span><br>
+      <span class="meta">baan ${escapeHtml(p.baan)}${p.oppotWeek ? ' · opgepot wk ' + p.oppotWeek + ' ' + (p.oppotJaar||'') : ''}</span></span>
+      <span class="right meta">blad ${currentLeaf(p)}<br>${n} meting${n === 1 ? '' : 'en'}</span>
+    </div>`;
+  });
+  if(archived.length){
+    html += `<div class="group-h">Gearchiveerd</div>`;
+    archived.forEach(p => {
+      html += `<div class="log-item" data-id="${p.id}"><span class="meta">${escapeHtml(p.naam)} · ${escapeHtml(p.soort || '')}</span><span class="right"><button class="btn-link" data-restore="${p.id}">Terugzetten</button></span></div>`;
+    });
+  }
+  $('plantList').innerHTML = html;
+  $('plantList').querySelectorAll('.log-item').forEach(el => el.addEventListener('click', e => {
+    if(e.target.dataset.restore){
+      plantById(e.target.dataset.restore).archief = false; persist(); renderPlanten(); showToast('Plant teruggezet'); return;
+    }
+    editPlant(el.dataset.id);
+  }));
+}
+
+function editPlant(id){
+  const p = plantById(id);
+  editingId = id;
+  $('plantFormTitle').textContent = 'Plant bewerken';
+  $('pNaam').value = p.naam; $('pSoort').value = p.soort || '';
+  $('pOppotWeek').value = p.oppotWeek || ''; $('pOppotJaar').value = p.oppotJaar || '';
+  $('pAfdeling').value = p.afdeling || ''; $('pBaan').value = p.baan || '';
+  $('pBlad').value = p.startBlad || 1; $('pNotitie').value = p.notitie || '';
+  $('cancelEditBtn').classList.remove('hidden');
+  $('archiveBtn').classList.toggle('hidden', !!p.archief);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function resetPlantForm(){
+  editingId = null;
+  $('plantFormTitle').textContent = 'Nieuwe meetplant';
+  ['pNaam','pBaan','pNotitie','pOppotWeek'].forEach(id => $(id).value = '');
+  $('pBlad').value = 1;
+  $('cancelEditBtn').classList.add('hidden');
+  $('archiveBtn').classList.add('hidden');
+}
+$('cancelEditBtn').addEventListener('click', () => { resetPlantForm(); renderPlanten(); });
+$('archiveBtn').addEventListener('click', () => {
+  const p = plantById(editingId);
+  if(!confirm(`${p.naam} archiveren? De metingen blijven bewaard en de plant verdwijnt uit de ronde.`)) return;
+  p.archief = true; persist(); resetPlantForm(); renderPlanten(); showToast('Plant gearchiveerd');
+});
+$('savePlantBtn').addEventListener('click', () => {
+  const naam = $('pNaam').value.trim();
+  if(!naam){ showToast('Vul een plantnaam of code in'); return; }
+  const afdeling = $('pAfdeling').value.trim();
+  if(!afdeling){ showToast('Vul de afdeling in'); return; }
+  const wk = parseInt($('pOppotWeek').value);
+  const data = {
+    naam, soort: $('pSoort').value.trim(),
+    oppotWeek: wk >= 1 && wk <= 53 ? wk : null,
+    oppotJaar: parseInt($('pOppotJaar').value) || null,
+    afdeling, baan: $('pBaan').value.trim(),
+    startBlad: Math.max(1, parseInt($('pBlad').value) || 1),
+    notitie: $('pNotitie').value.trim()
+  };
+  if(editingId){
+    Object.assign(plantById(editingId), data);
+    showToast('Plant bijgewerkt');
+  } else {
+    db.plants.push(Object.assign({ id: uid(), aangemaakt: new Date().toISOString(), archief:false }, data));
+    showToast('Plant toegevoegd — ' + naam);
+  }
+  if(!persist()) return;
+  // soort/afdeling/jaar laten staan voor snel meerdere planten invoeren
+  resetPlantForm();
+  renderPlanten();
+});
+
+// ================= GRAFIEKEN =================
+const charts = {};
+function mkChart(id, cfg){
+  if(charts[id]) charts[id].destroy();
+  if(typeof Chart === 'undefined'){ return null; }
+  charts[id] = new Chart($(id), cfg);
+  return charts[id];
+}
+let chartMode = 'plant';
+document.querySelectorAll('#chartMode button').forEach(b => b.addEventListener('click', () => {
+  chartMode = b.dataset.m;
+  document.querySelectorAll('#chartMode button').forEach(x => x.classList.toggle('active', x === b));
+  renderGrafieken();
+}));
+
+function renderGrafieken(){
+  $('modePlant').classList.toggle('hidden', chartMode !== 'plant');
+  $('modeAfd').classList.toggle('hidden', chartMode !== 'afdeling');
+  if(typeof Chart === 'undefined') showToast('Grafiekbibliotheek niet geladen — open de app één keer met internet');
+  if(chartMode === 'plant') renderPlantCharts(); else renderCompare();
+}
+
+function renderPlantCharts(){
+  const sel = $('chartPlant');
+  const all = activePlants().concat(db.plants.filter(p => p.archief));
+  if(!all.length){
+    sel.innerHTML = '';
+    $('plantStats').innerHTML = ''; $('measTable').innerHTML = '<div class="empty">Nog geen planten</div>';
+    Object.keys(charts).forEach(k => { charts[k].destroy(); delete charts[k]; });
+    return;
+  }
+  const prevSel = sel.value || cur.plantId;
+  sel.innerHTML = all.map(p => `<option value="${p.id}">${escapeHtml(p.naam)} · afd ${escapeHtml(p.afdeling)} / ${escapeHtml(p.baan)}${p.soort ? ' · ' + escapeHtml(p.soort) : ''}${p.archief ? ' (archief)' : ''}</option>`).join('');
+  sel.value = all.some(p => p.id === prevSel) ? prevSel : all[0].id;
+  const p = plantById(sel.value);
+  const ms = withGrowth(metingenVan(p.id));
+
+  // Stats
+  const growth = ms.filter(m => m.gL != null);
+  const last4 = growth.slice(-4);
+  const avg = arr => arr.length ? arr.reduce((s,x)=>s+x,0) / arr.length : null;
+  const leaves = [...new Set(ms.map(m => m.blad))];
+  const finished = leaves.slice(0,-1).map(b => ms.filter(m => m.blad === b).pop());
+  $('plantStats').innerHTML = `
+    <div class="stat"><div class="v">${fmt(avg(last4.map(m=>m.gL)))}</div><div class="l">cm/wk lengte<br>(laatste 4)</div></div>
+    <div class="stat"><div class="v">${fmt(avg(last4.map(m=>m.gB).filter(x=>x!=null)))}</div><div class="l">cm/wk breedte<br>(laatste 4)</div></div>
+    <div class="stat"><div class="v">${finished.length ? fmt(avg(finished.map(m=>m.lengte).filter(x=>x!=null))) : '–'}</div><div class="l">eindlengte blad<br>(gem. ${finished.length} bladeren)</div></div>`;
+
+  // Weken-as
+  const weeks = [...new Set(ms.map(m => weekKey(m.datum)))].sort();
+  const labels = weeks.map(weekLabel);
+
+  const sizeSets = [];
+  leaves.forEach((b, i) => {
+    const col = LEAF_COLORS[i % LEAF_COLORS.length];
+    const byWk = {};
+    ms.filter(m => m.blad === b).forEach(m => byWk[weekKey(m.datum)] = m);
+    sizeSets.push({ label:`Blad ${b} lengte`, data: weeks.map(w => byWk[w] ? byWk[w].lengte : null), borderColor:col, backgroundColor:col, tension:.25, spanGaps:false, pointRadius:3 });
+    sizeSets.push({ label:`Blad ${b} breedte`, data: weeks.map(w => byWk[w] ? byWk[w].breedte : null), borderColor:col, backgroundColor:col, borderDash:[5,4], tension:.25, spanGaps:false, pointRadius:2 });
+  });
+  mkChart('sizeChart', {
+    type:'line',
+    data:{ labels, datasets:sizeSets },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c => `${c.dataset.label}: ${fmt(c.parsed.y)} cm` } } },
+      scales:{ y:{ beginAtZero:true, title:{ display:true, text:'cm' } } } }
+  });
+
+  // Groei per week + omstandigheden
+  const byWk = {};
+  ms.forEach(m => { const k = weekKey(m.datum); if(!byWk[k] || m.gL != null) byWk[k] = m; });
+  const condRow = (k, y) => weeks.map(w => byWk[w] && byWk[w].cond && byWk[w].cond[k] ? y : null);
+  const gl = weeks.map(w => byWk[w] ? byWk[w].gL : null);
+  const gb = weeks.map(w => byWk[w] ? byWk[w].gB : null);
+  const maxG = Math.max(1, ...gl.filter(x=>x!=null), ...gb.filter(x=>x!=null));
+  const minG = Math.min(0, ...gl.filter(x=>x!=null), ...gb.filter(x=>x!=null));
+  const span = maxG - minG;
+  mkChart('growthChart', {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Lengte', data:gl, backgroundColor:'#21402C', order:2 },
+      { label:'Breedte', data:gb, backgroundColor:'#9DB894', order:2 },
+      { type:'line', label:'Geremd', data:condRow('remmen', minG - span*0.08), pointStyle:'rect', pointRadius:6, showLine:false, backgroundColor:'#C97F2C', borderColor:'#C97F2C', order:1 },
+      { type:'line', label:'Belichting', data:condRow('belichting', minG - span*0.16), pointStyle:'rect', pointRadius:6, showLine:false, backgroundColor:'#D4A03C', borderColor:'#D4A03C', order:1 },
+      { type:'line', label:'Klimaat', data:condRow('klimaat', minG - span*0.24), pointStyle:'rect', pointRadius:6, showLine:false, backgroundColor:'#3F6F8A', borderColor:'#3F6F8A', order:1 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:true, labels:{ boxWidth:10, font:{ size:11 } } },
+        tooltip:{ callbacks:{
+          label: c => c.datasetIndex < 2 ? `${c.dataset.label}: ${fmtSigned(c.parsed.y)} cm/wk` : c.dataset.label,
+          afterBody: items => { const m = byWk[weeks[items[0].dataIndex]]; return m ? [`Blad ${m.blad}${m.nieuwBlad ? ' (nieuw)' : ''}`].concat(m.notitie ? [m.notitie] : []) : []; }
+        } }
+      },
+      scales:{ y:{ min: minG - span*0.3, title:{ display:true, text:'cm / week' }, ticks:{ callback: v => v < minG ? '' : fmt(v) } } } }
+  });
+
+  // Tabel
+  if(!ms.length){ $('measTable').innerHTML = '<div class="empty">Nog geen metingen voor deze plant</div>'; return; }
+  const rows = ms.slice().reverse().map(m => `<tr>
+    <td>${weekLabel(weekKey(m.datum))}<br><span class="meta" style="font-size:11px;color:var(--text-soft)">${fmtDate(m.datum)}</span></td>
+    <td>${m.blad}${m.nieuwBlad ? '<span class="tag blad">nieuw</span>' : ''}</td>
+    <td class="num">${fmt(m.lengte)} × ${fmt(m.breedte)}</td>
+    <td class="num">${m.gL != null ? fmtSigned(m.gL) + ' / ' + fmtSigned(m.gB) : '–'}</td>
+    <td>${COND_KEYS.filter(k => m.cond && m.cond[k]).map(k => `<span class="tag ${k}">${COND_LABEL[k][0]}</span>`).join('')}${m.notitie ? ` <span title="${escapeHtml(m.notitie)}">📝</span>` : ''}</td>
+    <td><button class="del" data-del="${m.id}" aria-label="Verwijder">×</button></td>
+  </tr>${m.notitie ? `<tr><td colspan="6" style="font-size:12px;color:var(--text-soft);padding-top:0">${escapeHtml(m.notitie)}</td></tr>` : ''}`).join('');
+  $('measTable').innerHTML = `<table><tr><th>Week</th><th>Blad</th><th class="num">L × B cm</th><th class="num">cm/wk</th><th></th><th></th></tr>${rows}</table>`;
+  $('measTable').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    if(!confirm('Deze meting verwijderen?')) return;
+    db.metingen = db.metingen.filter(m => m.id !== b.dataset.del);
+    persist(); renderPlantCharts(); showToast('Meting verwijderd');
+  }));
+}
+$('chartPlant').addEventListener('change', renderPlantCharts);
+
+function renderCompare(){
+  const soorten = [...new Set(db.plants.map(p => p.soort).filter(Boolean))].sort();
+  const prevS = $('cmpSoort').value;
+  $('cmpSoort').innerHTML = '<option value="">Alle soorten</option>' + soorten.map(s => `<option>${escapeHtml(s)}</option>`).join('');
+  if(soorten.includes(prevS)) $('cmpSoort').value = prevS;
+
+  const group = $('cmpGroup').value, metric = $('cmpMetric').value, soort = $('cmpSoort').value;
+  $('cmpTitle').textContent = `Gem. ${metric === 'gL' ? 'lengte' : 'breedte'}groei per ${group === 'plant' ? 'plant' : group}`;
+
+  const rows = [];
+  db.plants.filter(p => !soort || p.soort === soort).forEach(p => {
+    withGrowth(metingenVan(p.id)).forEach(m => { if(m[metric] != null) rows.push({ p, m, wk: weekKey(m.datum) }); });
+  });
+  const keyOf = r => group === 'afdeling' ? 'Afd. ' + (r.p.afdeling || '?') : group === 'soort' ? (r.p.soort || 'onbekend') : r.p.naam;
+  const groups = [...new Set(rows.map(keyOf))].sort((a,b) => a.localeCompare(b, 'nl', {numeric:true}));
+  const weeks = [...new Set(rows.map(r => r.wk))].sort();
+
+  if(!rows.length){
+    if(charts.cmpChart){ charts.cmpChart.destroy(); delete charts.cmpChart; }
+    $('cmpTable').innerHTML = '<div class="empty">Nog te weinig data — vanaf de tweede meting van een blad wordt groei berekend</div>';
+    return;
+  }
+  const sets = groups.map((g, i) => {
+    const col = LEAF_COLORS[i % LEAF_COLORS.length];
+    return { label:g, borderColor:col, backgroundColor:col, tension:.25, spanGaps:true, pointRadius:3,
+      data: weeks.map(w => { const v = rows.filter(r => r.wk === w && keyOf(r) === g).map(r => r.m[metric]); return v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; }) };
+  });
+  mkChart('cmpChart', {
+    type:'line',
+    data:{ labels: weeks.map(weekLabel), datasets: sets },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, labels:{ boxWidth:10, font:{ size:11 } } },
+        tooltip:{ callbacks:{ label: c => `${c.dataset.label}: ${fmtSigned(c.parsed.y)} cm/wk`,
+          afterLabel: c => { const g = c.dataset.label, w = weeks[c.dataIndex];
+            const conds = new Set(); rows.filter(r => r.wk === w && keyOf(r) === g).forEach(r => COND_KEYS.forEach(k => r.m.cond && r.m.cond[k] && conds.add(COND_LABEL[k])));
+            return conds.size ? '(' + [...conds].join(', ') + ')' : ''; } } } },
+      scales:{ y:{ title:{ display:true, text:'cm / week' } } } }
+  });
+
+  // Samenvatting: gem. groei met / zonder omstandigheid
+  const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+  const tr = groups.map(g => {
+    const gr = rows.filter(r => keyOf(r) === g);
+    const all = gr.map(r => r.m[metric]);
+    const last4w = weeks.slice(-4);
+    const rec = gr.filter(r => last4w.includes(r.wk)).map(r => r.m[metric]);
+    const rem = gr.filter(r => r.m.cond && r.m.cond.remmen).map(r => r.m[metric]);
+    const norem = gr.filter(r => !(r.m.cond && r.m.cond.remmen)).map(r => r.m[metric]);
+    return `<tr><td><strong>${escapeHtml(g)}</strong></td><td class="num">${fmt(avg(all))}</td><td class="num">${fmt(avg(rec))}</td><td class="num">${fmt(avg(rem))}</td><td class="num">${fmt(avg(norem))}</td></tr>`;
+  }).join('');
+  $('cmpTable').innerHTML = `<table><tr><th>Groep</th><th class="num">Gem.</th><th class="num">Laatste 4 wk</th><th class="num">Geremd</th><th class="num">Niet geremd</th></tr>${tr}</table>
+    <div class="note">Alle waarden in cm/week ${metric === 'gL' ? 'lengte' : 'breedte'}groei.</div>`;
+}
+['cmpGroup','cmpMetric','cmpSoort'].forEach(id => $(id).addEventListener('change', renderCompare));
+
+// ================= EXPORT =================
+function renderExport(){
+  const n = db.metingen.length, np = db.plants.length;
+  const first = db.metingen.map(m => m.datum).sort()[0];
+  $('dataInfo').innerHTML = `${np} plant${np === 1 ? '' : 'en'} · ${n} meting${n === 1 ? '' : 'en'}${first ? ' · sinds ' + parseDate(first).toLocaleDateString('nl-NL') : ''}`;
+}
+function csvCell(v){
+  if(v == null) return '';
+  if(typeof v === 'number') return String(Math.round(v*100)/100).replace('.', ',');
+  return '"' + String(v).replace(/"/g, '""') + '"';
+}
+async function download(filename, content, type){
+  const blob = new Blob([content], { type });
+  // Op telefoon: deel-menu (opslaan in Bestanden, mailen, OneDrive...) als dat kan
+  try{
+    const file = new File([blob], filename, { type });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title: filename });
+      return;
+    }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function stamp(){ return dateStr(new Date()); }
+
+$('exportMeasBtn').addEventListener('click', () => {
+  if(!db.metingen.length){ showToast('Geen metingen om te exporteren'); return; }
+  const headers = ['datum','jaar','week','plant','soort','afdeling','baan','oppotweek','oppotjaar','weken_na_oppotten','blad','nieuw_blad','lengte_cm','breedte_cm','groei_lengte_cm','groei_breedte_cm','dagen_sinds_vorige','groei_lengte_cm_per_week','groei_breedte_cm_per_week','geremd','belichting','klimaatwijziging','notitie'];
+  const lines = [headers.join(';')];
+  db.plants.forEach(p => {
+    withGrowth(metingenVan(p.id)).forEach(m => {
+      const w = isoWeek(parseDate(m.datum));
+      const c = m.cond || {};
+      lines.push([m.datum, w.year, w.week, p.naam, p.soort, p.afdeling, p.baan, p.oppotWeek, p.oppotJaar, pottedWeeks(p, parseDate(m.datum)),
+        m.blad, m.nieuwBlad ? 'ja' : 'nee', m.lengte, m.breedte, m.dL, m.dB, m.dagen, m.gL, m.gB,
+        c.remmen ? 'ja' : 'nee', c.belichting ? 'ja' : 'nee', c.klimaat ? 'ja' : 'nee', m.notitie].map(csvCell).join(';'));
+    });
+  });
+  download(`plantmetingen_${stamp()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+});
+
+$('exportPlantBtn').addEventListener('click', () => {
+  if(!db.plants.length){ showToast('Geen planten om te exporteren'); return; }
+  const headers = ['plant','soort','afdeling','baan','oppotweek','oppotjaar','startblad','huidig_blad','aantal_metingen','gearchiveerd','notitie'];
+  const lines = [headers.join(';')];
+  db.plants.forEach(p => lines.push([p.naam, p.soort, p.afdeling, p.baan, p.oppotWeek, p.oppotJaar, p.startBlad, currentLeaf(p),
+    db.metingen.filter(m => m.plantId === p.id).length, p.archief ? 'ja' : 'nee', p.notitie].map(csvCell).join(';')));
+  download(`planten_${stamp()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+});
+
+$('backupBtn').addEventListener('click', () => {
+  const data = JSON.stringify({ app:'plantmetingen', versie:1, gemaakt:new Date().toISOString(), ...db }, null, 1);
+  download(`plantmetingen_backup_${stamp()}.json`, data, 'application/json');
+});
+$('restoreBtn').addEventListener('click', () => $('restoreFile').click());
+$('restoreFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if(!Array.isArray(d.plants) || !Array.isArray(d.metingen)) throw new Error('ongeldig');
+    const merge = db.plants.length && confirm(`Back-up bevat ${d.plants.length} planten en ${d.metingen.length} metingen.\n\nOK = samenvoegen met huidige gegevens\nAnnuleren = kies daarna of je alles wilt vervangen`);
+    if(merge){
+      const pids = new Set(db.plants.map(p => p.id)), mids = new Set(db.metingen.map(m => m.id));
+      d.plants.forEach(p => { if(!pids.has(p.id)) db.plants.push(p); });
+      d.metingen.forEach(m => { if(!mids.has(m.id)) db.metingen.push(m); });
+      db.cond = Object.assign({}, d.cond || {}, db.cond);
+    } else {
+      if(db.plants.length && !confirm('Alle huidige gegevens vervangen door de back-up?')) return;
+      db = { plants:d.plants, metingen:d.metingen, cond:d.cond || {} };
+    }
+    persist(); renderExport(); showToast('Back-up ingeladen');
+  }catch(err){ showToast('Kon dit bestand niet lezen als back-up'); }
+});
+$('wipeBtn').addEventListener('click', () => {
+  if(!confirm('Alle planten en metingen op dit toestel wissen? Maak eerst een back-up!')) return;
+  if(!confirm('Echt zeker? Dit kan niet ongedaan worden.')) return;
+  db = { plants:[], metingen:[], cond:{} };
+  persist(); renderExport(); showToast('Alle gegevens gewist');
+});
+
+// ---------- Init ----------
+load();
+renderMeten();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
