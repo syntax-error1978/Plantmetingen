@@ -358,7 +358,7 @@
             <button data-k="belichting">Belichting aan</button>
             <button data-k="klimaat">Klimaatwijziging</button>
           </div>
-          <div class="note">Wordt onthouden per afdeling, zodat je het maar één keer hoeft aan te zetten.</div>
+          <div class="note">Wordt per plant onthouden voor de volgende meting.</div>
         </div>
 
         <div class="field">
@@ -713,8 +713,8 @@ function selectPlant(id){
   $('newLeafToggle').classList.remove('on');
   updateLeafSub();
 
-  // Omstandigheden: onthouden per afdeling
-  cur.cond = Object.assign({}, db.cond[p.afdeling] || {});
+  // Omstandigheden: onthouden per plant
+  cur.cond = Object.assign({}, db.cond[p.id] || {});
   document.querySelectorAll('#condChips button').forEach(b => b.classList.toggle('active', !!cur.cond[b.dataset.k]));
 
   $('mLengte').value = '';
@@ -807,7 +807,7 @@ $('saveBtn').addEventListener('click', () => {
     blad: leaf, nieuwBlad: cur.newLeaf, lengte, breedte, cond,
     notitie: $('mNotitie').value.trim()
   });
-  db.cond[p.afdeling] = cond;
+  db.cond[p.id] = cond;
   if(!persist()) return;
 
   showToast(`Opgeslagen — ${p.naam} blad ${leaf}: ${fmt(lengte)} × ${fmt(breedte)} cm`);

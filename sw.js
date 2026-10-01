@@ -1,6 +1,6 @@
 // Service worker: laat de app offline werken in de kas.
 // Verhoog CACHE bij elke nieuwe versie zodat telefoons de update ophalen.
-const CACHE = 'plantmetingen-v1';
+const CACHE = 'plantmetingen-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

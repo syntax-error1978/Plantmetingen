@@ -11,7 +11,7 @@ De app lijkt qua opzet en kleuren op de Scoutronde-app. Het is één webpagina d
    - De app kiest automatisch de volgende plant die deze week nog niet gemeten is.
    - Meet de **lengte** en **breedte** van het jongste blad in cm. De knoppen −½ / +½ beginnen bij de vorige meting, en je ziet direct de groei ten opzichte van vorige week.
    - Groeit het blad nauwelijks meer (minder dan 0,3 cm/week)? Dan geeft de app een hint. Het blad is dan uitgegroeid: zet **Wissel naar nieuw blad** aan en meet het volgende nieuwe blad.
-   - Zet aan wat er deze week speelde: **Geremd**, **Belichting aan** of **Klimaatwijziging**. De app onthoudt dit per afdeling.
+   - Zet aan wat er deze week speelde: **Geremd**, **Belichting aan** of **Klimaatwijziging**. De app onthoudt dit per plant, zodat een referentieplant in dezelfde afdeling niet per ongeluk als "geremd" wordt opgeslagen.
    - In de notitie zet je bijzonderheden, zoals het middel en de dosering, temperaturen of afwijkingen.
    - Onderaan zie je de voortgang van de ronde. Tik op een plant om ernaartoe te springen.
 3. **Grafieken**:
